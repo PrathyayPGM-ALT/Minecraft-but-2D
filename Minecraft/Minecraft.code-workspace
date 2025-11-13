@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "2d-minecraft-clone-main"
+		},
+		{
+			"name": "2d-minecraft-clone",
+			"path": "../../2d-minecraft-clone"
+		}
+	],
+	"settings": {}
+}
