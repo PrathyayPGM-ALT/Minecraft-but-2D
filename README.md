@@ -1,10 +1,141 @@
-# Minecraft-but-2D
-THIS IS MINECRAFT - YAYYAYAYAYA
-So you might notice that there's something off here - there'r 2 code files. 1s c++ for speed and the other is pygame for particles, and easyness. you can play by downloadin all the files here.
-By the way - here an alert
+# ⛏️ FatalCraft – A 2D Minecraft-Inspired Sandbox  
+A fully custom-built 2D Minecraft clone made with **Pygame**, featuring mining, crafting, mobs, particles, day/night cycle, and more.  
+Created by **PrathyayPGM-ALT** (the ultimate chaos dev).
 
-```ITS STILL NOT FINISHED```
-so wait some more time
+---
 
-If you want to play the still unfinished version, click on download zipped file in the "code" button, then click extract all, open it and run the main code
-Ps. I removed the c++, for now...
+## 🎮 Features
+
+### 🧱 World & Blocks
+- Infinite-style scrolling world  
+- Grass, dirt, stone, coal, iron, diamond, bedrock  
+- Trees with wood + leaves  
+- Block breaking progress bar  
+- Block placing with support checks  
+- Chunk-based world system  
+- Particle effects when you break blocks  
+
+### 👤 Player
+- Smooth movement & camera  
+- Sprinting (Shift)  
+- Jumping & fall damage  
+- Hotbar (9 slots)  
+- Mining range  
+- Inventory with stack counts  
+- Heart-based health system with custom icons  
+
+### 🔨 Crafting System
+- 3×3 crafting grid  
+- Recipes (stick, pickaxes, etc.)  
+- Output slot  
+- Works with `E` key toggle  
+- Items move between inventory ↔ crafting grid  
+
+### 🌙 Day & Night Cycle
+- Dynamic lighting  
+- Daytime: passive mobs spawn  
+- Nighttime: hostile mobs spawn  
+
+### 🐾 Mobs  
+#### Passive  
+- 🐖 Pig  
+- 🐑 Sheep  
+(with wandering, idle, walking, physics, knockback)
+
+#### Hostile  
+- 🧟 Zombie  
+- 🕷️ Spider  
+- 💥 Creeper (full exploding system with block destruction)
+
+---
+
+## 🎮 Controls
+
+| Action | Key |
+|--------|-----|
+| Move Left / Right | A / D |
+| Jump | W / Space / ↑ |
+| Break Block | Left Click |
+| Place Block | Right Click |
+| Open Crafting Table | E |
+| Select Hotbar Slot | 1–9 |
+| Previous / Next Slot | [ or ] |
+| Craft Item | SPACE |
+| Sprint | Left Shift |
+
+---
+
+## 📦 Installation  
+
+### 1️⃣ Clone the repo  
+```bash
+git clone https://github.com/PrathyayPGM-ALT/Minecraft-but-2D
+cd Minecraft-but-2D/Minecraft
+```
+
+### 2️⃣ Install dependencies  
+```bash
+pip install pygame
+```
+
+### 3️⃣ Run the game  
+```bash
+python main.py
+```
+
+---
+
+## 🗂️ Project Structure
+```
+Minecraft-but-2D/
+│
+├── Minecraft/
+│   ├── main.py
+│   ├── crafting.py
+│   ├── textures/
+│   │   ├── dirt.png
+│   │   ├── stone.png
+│   │   ├── stick.png
+│   │   └── ...
+│   └── sounds/
+│       └── hurt.mp3
+│
+└── README.md
+```
+
+---
+
+## 💥 Screenshots  
+*(Add your game screenshots here)*  
+```markdown
+![Gameplay](textures/screenshot1.png)
+![Night Mode](textures/screenshot2.png)
+![Crafting Table](textures/screenshot3.png)
+```
+
+---
+
+## 🛠️ To-Do / Future Features
+- Tools (pickaxes change mining speed)  
+- Smelting & furnaces  
+- Mobs dropping items  
+- Biomes  
+- Cave generation  
+- Real inventory UI  
+- Boss mobs  
+- Bow & arrows  
+- Armor system  
+- Sound effects for blocks  
+- Better textures  
+- Saving + loading crafting grid  
+
+---
+
+## 💡 Contributing  
+Contributions welcome!  
+Open a PR or issue if you want to add features or fix bugs.
+
+---
+
+## ⭐ Like the project?  
+Leave a **star ⭐ on GitHub** and follow **PrathyayPGM-ALT** for more chaos-powered projects.  
