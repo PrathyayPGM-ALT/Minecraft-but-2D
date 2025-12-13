@@ -108,9 +108,8 @@ Minecraft-but-2D/
 ## 💥 Screenshots  
 *(Add your game screenshots here)*  
 ```markdown
-![Gameplay](textures/screenshot1.png)
-![Night Mode](textures/screenshot2.png)
-![Crafting Table](textures/screenshot3.png)
+<img width="998" height="839" alt="image" src="https://github.com/user-attachments/assets/d68a8d83-a0cc-4d73-abbc-7db039326233" />
+
 ```
 
 ---
