@@ -15,7 +15,7 @@ WHITE = (255, 255, 255)
 SKY_BLUE = (135, 206, 235)
 MAX_FALL_DISTANCE = 1000
 BLOCK_HEALTH = 100
-DAY_COLOR = (135, 206, 235)  
+DAY_COLOR = (135, 206, 235)
 NIGHT_COLOR = (20, 20, 50)    
 is_day = True  
 
@@ -33,6 +33,29 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("FatalCraft")
 
 font = pygame.font.SysFont('Arial', 20)
+
+ITEM_ICONS = {}
+
+def load_item_icons():
+    items = [
+        "dirt", "grass", "stone", "wood", "leaves",
+        "stick",
+        "wood_pickaxe", "stone_pickaxe",
+        "wood_sword", "stone_sword",
+        "ironore", "coal", "diamond"
+    ]
+
+    for item in items:
+        try:
+            img = pygame.image.load(f"textures/{item}.png").convert_alpha()
+            ITEM_ICONS[item] = img
+        except:
+            surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+            surf.fill((200, 50, 50))
+            ITEM_ICONS[item] = surf
+            print(f"[WARNING] Missing icon: textures/{item}.png")
+load_item_icons()
+
 class Particle:
     def __init__(self, x, y, color):
         self.x = x
@@ -1014,54 +1037,59 @@ class Creeper:
 def draw_hotbar(screen, player):
     hotbar_x = (WIDTH - HOTBAR_WIDTH) // 2
     hotbar_y = HEIGHT - HOTBAR_HEIGHT - HOTBAR_MARGIN
-    
-    pygame.draw.rect(screen, (50, 50, 50), 
-                    (hotbar_x - 2, hotbar_y - 2, 
-                     HOTBAR_WIDTH + 4, HOTBAR_HEIGHT + 4))
-    pygame.draw.rect(screen, (150, 150, 150), 
-                    (hotbar_x, hotbar_y, HOTBAR_WIDTH, HOTBAR_HEIGHT))
-    
+
+    # Background
+    pygame.draw.rect(
+        screen, (40, 40, 40),
+        (hotbar_x - 4, hotbar_y - 4, HOTBAR_WIDTH + 8, HOTBAR_HEIGHT + 8),
+        border_radius=6
+    )
+
+    pygame.draw.rect(
+        screen, (120, 120, 120),
+        (hotbar_x, hotbar_y, HOTBAR_WIDTH, HOTBAR_HEIGHT),
+        border_radius=6
+    )
+
+    font = pygame.font.SysFont(None, 18)
+
     for slot in range(HOTBAR_SLOTS):
         slot_x = hotbar_x + slot * SLOT_SIZE
         slot_rect = pygame.Rect(slot_x, hotbar_y, SLOT_SIZE, SLOT_SIZE)
-        
-        pygame.draw.rect(screen, (100, 100, 100), slot_rect, 2)
-        
-        item = player.inventory[slot]
-        if item["type"]:
-            temp_block = None
-            if item["type"] == "dirt":
-                temp_block = Dirtblock(0, 0)
-            elif item["type"] == "stick":
-                temp_block = Stickblock(0, 0)
-            elif item["type"] == "stone":
-                temp_block = Stoneblock(0, 0)
-            elif item["type"] == "grass":
-                temp_block = Grassblock(0, 0)
-            elif item["type"] == "wood":
-                temp_block = Wood(0, 0)
-            elif item["type"] == "leaves":
-                temp_block = Leaves(0, 0)
-            elif item["type"] == "ironore":
-                temp_block = IronOre(0, 0)
-            elif item["type"] == "coal":
-                temp_block = Coal(0, 0)
-            elif item["type"] == "diamond":
-                temp_block = Diamond(0, 0)
-            
-            if temp_block:
 
-                scaled_img = pygame.transform.scale(temp_block.image, (SLOT_SIZE - 10, SLOT_SIZE - 10))
-                screen.blit(scaled_img, (slot_x + 5, hotbar_y + 5))
-            
-            font = pygame.font.SysFont(None, 20)
-            count_text = font.render(str(item["count"]), True, WHITE)
-            screen.blit(count_text, (slot_x + SLOT_SIZE - 15, hotbar_y + SLOT_SIZE - 20))
-    
+        # Slot border
+        pygame.draw.rect(screen, (90, 90, 90), slot_rect, 2)
+
+        item = player.inventory[slot]
+
+        if item["type"]:
+            icon = ITEM_ICONS.get(item["type"])
+
+            if icon:
+                icon_img = pygame.transform.scale(
+                    icon,
+                    (SLOT_SIZE - 10, SLOT_SIZE - 10)
+                )
+                screen.blit(icon_img, (slot_x + 5, hotbar_y + 5))
+
+            # Stack count (do not show for tools = count 1)
+            if item["count"] > 1:
+                count_text = font.render(str(item["count"]), True, (255, 255, 255))
+                screen.blit(
+                    count_text,
+                    (slot_x + SLOT_SIZE - 16, hotbar_y + SLOT_SIZE - 18)
+                )
+
+    # Selected slot highlight
     selection_x = hotbar_x + player.selected_slot * SLOT_SIZE
-    pygame.draw.rect(screen, SELECTED_COLOR, 
-                    (selection_x - 2, hotbar_y - 2, 
-                     SLOT_SIZE + 4, SLOT_SIZE + 4), 2)
+    pygame.draw.rect(
+        screen,
+        SELECTED_COLOR,
+        (selection_x - 3, hotbar_y - 3, SLOT_SIZE + 6, SLOT_SIZE + 6),
+        3,
+        border_radius=4
+    )
+
 
 def draw_health_bar(screen, player):
     heart_size = player.heart_size
@@ -1186,9 +1214,7 @@ while running:
         # draw crafting UI
         crafting.draw(screen)
 
-        # craft output using SPACE
-        if keys[pygame.K_SPACE]:
-            crafting.apply_craft()
+
 
         pygame.display.flip()
         continue  # <--- ONLY ONE continue, at the END
