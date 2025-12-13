@@ -22,9 +22,6 @@ class CraftingTable:
 
         self.font = pygame.font.SysFont("Arial", 22)
 
-        # --------------------
-        # MINECRAFT-STYLE RECIPES
-        # --------------------
         self.recipes = {
             # sticks
             (("wood",),
@@ -53,26 +50,15 @@ class CraftingTable:
             (("stone",),
              ("stone",),
              ("stick",)): ("stone_sword", 1),
-
-            # chest
-            (("wood", "wood", "wood"),
-             ("wood", None, "wood"),
-             ("wood", "wood", "wood")): ("chest", 1),
-
-            # stone bricks
-            (("stone", "stone"),
-             ("stone", "stone")): ("stone_bricks", 4),
         }
 
-    # ---------------------------------------------------------
-    # LOAD ICONS
-    # ---------------------------------------------------------
+
     def load_icons(self):
         items = [
-            "wood", "stone", "stick", "crafting_table",
+            "wood", "stone", "stick",
+            "crafting_table",
             "wood_pickaxe", "stone_pickaxe",
-            "wood_sword", "stone_sword",
-            "chest", "stone_bricks"
+            "wood_sword", "stone_sword"
         ]
 
         for item in items:
@@ -85,9 +71,7 @@ class CraftingTable:
                 self.icons[item] = surf
                 print(f"[WARNING] Missing texture: textures/{item}.png")
 
-    # ---------------------------------------------------------
-    # RECIPE MATCHING
-    # ---------------------------------------------------------
+
     def update_craft_result(self):
         pattern = self.trim_pattern(self.grid)
         self.output = None
@@ -121,9 +105,6 @@ class CraftingTable:
                     return False
         return True
 
-    # ---------------------------------------------------------
-    # CORRECT INGREDIENT CONSUMPTION (FIXED)
-    # ---------------------------------------------------------
     def consume_ingredients(self, recipe_pattern):
         if not recipe_pattern:
             return
@@ -131,7 +112,6 @@ class CraftingTable:
         ph = len(recipe_pattern)
         pw = len(recipe_pattern[0])
 
-        # Find where the recipe is placed in the grid
         for gy in range(GRID - ph + 1):
             for gx in range(GRID - pw + 1):
 
@@ -144,7 +124,6 @@ class CraftingTable:
                     if not match:
                         break
 
-                # Consume exact matched cells
                 if match:
                     for y in range(ph):
                         for x in range(pw):
@@ -152,16 +131,34 @@ class CraftingTable:
                                 self.grid[gy + y][gx + x] = None
                     return
 
-    # ---------------------------------------------------------
-    # MOUSE INPUT
-    # ---------------------------------------------------------
+    def remove_from_inventory(self, item_type):
+        for slot in self.inventory.values():
+            if slot["type"] == item_type:
+                slot["count"] -= 1
+                if slot["count"] <= 0:
+                    slot["type"] = None
+                    slot["count"] = 0
+                return
+
+    def add_to_inventory(self, item_type, count=1):
+        for slot in self.inventory.values():
+            if slot["type"] == item_type:
+                slot["count"] += count
+                return
+        for slot in self.inventory.values():
+            if slot["type"] is None:
+                slot["type"] = item_type
+                slot["count"] = count
+                return
+
     def handle_click(self, mpos, mb, selected_item):
         cell = self.get_hover_cell(mpos)
 
-        # OUTPUT SLOT CLICK
+        # OUTPUT SLOT
         if self.hover_output(mpos) and mb[0]:
             if self.output:
-                self.give_to_inventory(self.output)
+                name, count = self.output
+                self.add_to_inventory(name, count)
                 self.consume_ingredients(self.matched_recipe)
                 self.update_craft_result()
             return
@@ -171,19 +168,19 @@ class CraftingTable:
 
         cx, cy = cell
 
-        # LEFT CLICK = place item
         if mb[0] and selected_item:
-            self.grid[cy][cx] = selected_item
-            self.update_craft_result()
+            if self.grid[cy][cx] is None:
+                self.grid[cy][cx] = selected_item
+                self.remove_from_inventory(selected_item)
+                self.update_craft_result()
 
-        # RIGHT CLICK = remove item
+        # REMOVE ITEM → RETURN TO INVENTORY
         if mb[2]:
-            self.grid[cy][cx] = None
-            self.update_craft_result()
+            if self.grid[cy][cx] is not None:
+                self.add_to_inventory(self.grid[cy][cx])
+                self.grid[cy][cx] = None
+                self.update_craft_result()
 
-    # ---------------------------------------------------------
-    # DRAW UI
-    # ---------------------------------------------------------
     def draw(self, screen):
         W, H = screen.get_size()
 
@@ -191,8 +188,10 @@ class CraftingTable:
         sx = (W - total) // 2
         sy = (H - total) // 2 - 20
 
-        pygame.draw.rect(screen, PANEL_COLOR,
-                         (sx - 30, sy - 30, total + 60, total + 180))
+        pygame.draw.rect(
+            screen, PANEL_COLOR,
+            (sx - 30, sy - 30, total + 60, total + 180)
+        )
 
         mx, my = pygame.mouse.get_pos()
         hover = self.get_hover_cell((mx, my))
@@ -228,31 +227,6 @@ class CraftingTable:
             txt = self.font.render(f"x{count}", True, OUTLINE_COLOR)
             screen.blit(txt, (out_x + CELL + 10, out_y + CELL // 3))
 
-    # ---------------------------------------------------------
-    # INVENTORY SAFE ADD
-    # ---------------------------------------------------------
-    def give_to_inventory(self, result):
-        name, count = result
-
-        if isinstance(self.inventory, dict):
-            for i in self.inventory:
-                slot = self.inventory[i]
-                if slot["type"] == name:
-                    slot["count"] += count
-                    return
-
-            for i in self.inventory:
-                slot = self.inventory[i]
-                if slot["type"] is None:
-                    slot["type"] = name
-                    slot["count"] = count
-                    return
-
-        print("[WARNING] Inventory full or invalid!")
-
-    # ---------------------------------------------------------
-    # MOUSE HELPERS
-    # ---------------------------------------------------------
     def get_hover_cell(self, mpos):
         mx, my = mpos
         W, H = pygame.display.get_surface().get_size()
