@@ -106,7 +106,9 @@ Minecraft-but-2D/
 ---
 ## ScreenShots
 
-<img width="588" height="392" alt="Screenshot 2025-12-13 143804" src="https://github.com/user-attachments/assets/92e17592-fa8e-48c5-aadc-615514669d5a" />
+<img width="388" height="292" alt="Screenshot 2025-12-13 143804" src="https://github.com/user-attachments/assets/92e17592-fa8e-48c5-aadc-615514669d5a" />
+
+<img width="338" height="239" alt="Screenshot 2025-12-13 132847" src="https://github.com/user-attachments/assets/fd6af342-a793-4f82-847e-2c5b20cad6c5" />
 
 
 ## 🛠️ To-Do / Future Features
