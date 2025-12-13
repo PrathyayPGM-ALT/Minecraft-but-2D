@@ -131,8 +131,7 @@ Minecraft-but-2D/
 
 ---
 
-## 🛠️ To-Do / Future Features
-- Tools (pickaxes change mining speed)  
+## 🛠️ To-Do / Future Features  
 - Smelting & furnaces  
 - Mobs dropping items  
 - Biomes  
@@ -140,9 +139,8 @@ Minecraft-but-2D/
 - Real inventory UI  
 - Boss mobs  
 - Bow & arrows  
-- Armor system  
+- Armour system  
 - Sound effects for blocks  
-- Better textures  
 - Saving + loading crafting grid  
 
 ---
