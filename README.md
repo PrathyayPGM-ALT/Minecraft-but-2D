@@ -104,6 +104,10 @@ Minecraft-but-2D/
 ```
 
 ---
+## ScreenShots
+
+<img width="988" height="792" alt="Screenshot 2025-12-13 143804" src="https://github.com/user-attachments/assets/92e17592-fa8e-48c5-aadc-615514669d5a" />
+
 
 ## 🛠️ To-Do / Future Features
 - Tools (pickaxes change mining speed)  
