@@ -13,61 +13,90 @@ class CraftingTable:
     def __init__(self, inventory):
         self.inventory = inventory
 
-        # 3x3 grid
         self.grid = [[None for _ in range(GRID)] for _ in range(GRID)]
-
-        # output slot
         self.output = None
+        self.matched_recipe = None
 
-        # load icons
         self.icons = {}
         self.load_icons()
 
         self.font = pygame.font.SysFont("Arial", 22)
 
-        # RECIPES — SHAPED
+        # --------------------
+        # MINECRAFT-STYLE RECIPES
+        # --------------------
         self.recipes = {
-            # 2 wood vertical → sticks
+            # sticks
             (("wood",),
              ("wood",)): ("stick", 4),
 
-            # crafting table → 2×2 wood
+            # crafting table
             (("wood", "wood"),
              ("wood", "wood")): ("crafting_table", 1),
 
-            # pickaxe
+            # wooden pickaxe
+            (("wood", "wood", "wood"),
+             (None, "stick", None),
+             (None, "stick", None)): ("wood_pickaxe", 1),
+
+            # stone pickaxe
             (("stone", "stone", "stone"),
-             (None, "wood", None),
-             (None, "wood", None)): ("stone_pickaxe", 1),
+             (None, "stick", None),
+             (None, "stick", None)): ("stone_pickaxe", 1),
+
+            # wooden sword
+            (("wood",),
+             ("wood",),
+             ("stick",)): ("wood_sword", 1),
+
+            # stone sword
+            (("stone",),
+             ("stone",),
+             ("stick",)): ("stone_sword", 1),
+
+            # chest
+            (("wood", "wood", "wood"),
+             ("wood", None, "wood"),
+             ("wood", "wood", "wood")): ("chest", 1),
+
+            # stone bricks
+            (("stone", "stone"),
+             ("stone", "stone")): ("stone_bricks", 4),
         }
 
     # ---------------------------------------------------------
-    # LOAD ICONS FROM /textures/
+    # LOAD ICONS
     # ---------------------------------------------------------
     def load_icons(self):
-        items = ["wood", "stone", "stick", "crafting_table", "stone_pickaxe"]
+        items = [
+            "wood", "stone", "stick", "crafting_table",
+            "wood_pickaxe", "stone_pickaxe",
+            "wood_sword", "stone_sword",
+            "chest", "stone_bricks"
+        ]
 
         for item in items:
             try:
                 img = pygame.image.load(f"textures/{item}.png").convert_alpha()
                 self.icons[item] = pygame.transform.scale(img, (CELL - 16, CELL - 16))
             except:
-                print(f"[WARNING] Missing texture: textures/{item}.png")
-                # fallback placeholder
                 surf = pygame.Surface((CELL - 16, CELL - 16))
                 surf.fill((200, 200, 200))
                 self.icons[item] = surf
+                print(f"[WARNING] Missing texture: textures/{item}.png")
 
     # ---------------------------------------------------------
-    # MATCH RECIPES
+    # RECIPE MATCHING
     # ---------------------------------------------------------
     def update_craft_result(self):
         pattern = self.trim_pattern(self.grid)
         self.output = None
+        self.matched_recipe = None
 
         for recipe_pattern, result in self.recipes.items():
             if self.pattern_match(pattern, recipe_pattern):
                 self.output = result
+                self.matched_recipe = recipe_pattern
                 break
 
     def trim_pattern(self, grid):
@@ -75,48 +104,79 @@ class CraftingTable:
         rows = [r for r in rows if any(r)]
         if not rows:
             return ()
+
         cols = list(zip(*rows))
         cols = [c for c in cols if any(c)]
-        return tuple(tuple(c for c in col) for col in zip(*cols))
+
+        return tuple(tuple(cell for cell in row) for row in zip(*cols))
 
     def pattern_match(self, a, b):
         if len(a) != len(b):
             return False
-        for r in range(len(a)):
-            if len(a[r]) != len(b[r]):
+        for y in range(len(a)):
+            if len(a[y]) != len(b[y]):
                 return False
-            for c in range(len(a[r])):
-                if a[r][c] != b[r][c]:
+            for x in range(len(a[y])):
+                if a[y][x] != b[y][x]:
                     return False
         return True
 
     # ---------------------------------------------------------
-    # HANDLE MOUSE ACTIONS
+    # CORRECT INGREDIENT CONSUMPTION (FIXED)
+    # ---------------------------------------------------------
+    def consume_ingredients(self, recipe_pattern):
+        if not recipe_pattern:
+            return
+
+        ph = len(recipe_pattern)
+        pw = len(recipe_pattern[0])
+
+        # Find where the recipe is placed in the grid
+        for gy in range(GRID - ph + 1):
+            for gx in range(GRID - pw + 1):
+
+                match = True
+                for y in range(ph):
+                    for x in range(pw):
+                        if recipe_pattern[y][x] != self.grid[gy + y][gx + x]:
+                            match = False
+                            break
+                    if not match:
+                        break
+
+                # Consume exact matched cells
+                if match:
+                    for y in range(ph):
+                        for x in range(pw):
+                            if recipe_pattern[y][x] is not None:
+                                self.grid[gy + y][gx + x] = None
+                    return
+
+    # ---------------------------------------------------------
+    # MOUSE INPUT
     # ---------------------------------------------------------
     def handle_click(self, mpos, mb, selected_item):
-        mx, my = mpos
         cell = self.get_hover_cell(mpos)
 
-        # CLICK OUTPUT SLOT
+        # OUTPUT SLOT CLICK
         if self.hover_output(mpos) and mb[0]:
             if self.output:
                 self.give_to_inventory(self.output)
-                self.clear_grid()
+                self.consume_ingredients(self.matched_recipe)
+                self.update_craft_result()
             return
 
-        # CLICK GRID
         if cell is None:
             return
 
         cx, cy = cell
 
-        # LEFT CLICK → place item from hotbar
-        if mb[0]:
-            if selected_item:
-                self.grid[cy][cx] = selected_item
-                self.update_craft_result()
+        # LEFT CLICK = place item
+        if mb[0] and selected_item:
+            self.grid[cy][cx] = selected_item
+            self.update_craft_result()
 
-        # RIGHT CLICK → clear cell
+        # RIGHT CLICK = remove item
         if mb[2]:
             self.grid[cy][cx] = None
             self.update_craft_result()
@@ -131,14 +191,12 @@ class CraftingTable:
         sx = (W - total) // 2
         sy = (H - total) // 2 - 20
 
-        # panel
         pygame.draw.rect(screen, PANEL_COLOR,
                          (sx - 30, sy - 30, total + 60, total + 180))
 
         mx, my = pygame.mouse.get_pos()
         hover = self.get_hover_cell((mx, my))
 
-        # DRAW GRID
         for r in range(GRID):
             for c in range(GRID):
                 x = sx + c * (CELL + PADDING)
@@ -166,56 +224,34 @@ class CraftingTable:
 
         if self.output:
             name, count = self.output
-            if name in self.icons:
-                screen.blit(self.icons[name], (out_x + 8, out_y + 8))
-
+            screen.blit(self.icons[name], (out_x + 8, out_y + 8))
             txt = self.font.render(f"x{count}", True, OUTLINE_COLOR)
             screen.blit(txt, (out_x + CELL + 10, out_y + CELL // 3))
 
     # ---------------------------------------------------------
-    # SAFE GIVE-TO-INVENTORY (no crashes)
+    # INVENTORY SAFE ADD
     # ---------------------------------------------------------
     def give_to_inventory(self, result):
         name, count = result
 
-        # INVENTORY IS DICTIONARY LIKE:
-        # {0: {"type": "wood", "count": 3}, ...}
         if isinstance(self.inventory, dict):
-
-            # Try stacking first
             for i in self.inventory:
                 slot = self.inventory[i]
-                if isinstance(slot, dict) and slot["type"] == name:
+                if slot["type"] == name:
                     slot["count"] += count
                     return
 
-            # Put in empty slot
             for i in self.inventory:
                 slot = self.inventory[i]
-                if isinstance(slot, dict) and (slot["type"] is None or slot["type"] == 0):
+                if slot["type"] is None:
                     slot["type"] = name
                     slot["count"] = count
                     return
 
-        # Fallback
-        print("[WARNING] Could not add crafted item! Inventory format unknown.")
+        print("[WARNING] Inventory full or invalid!")
 
     # ---------------------------------------------------------
-    def clear_grid(self):
-        self.grid = [[None for _ in range(GRID)] for _ in range(GRID)]
-        self.update_craft_result()
-
-    # ---------------------------------------------------------
-    # ADD BACKWARD COMPATIBLE SPACE CRAFTING
-    # ---------------------------------------------------------
-    def apply_craft(self):
-        if not self.output:
-            return
-        self.give_to_inventory(self.output)
-        self.clear_grid()
-
-    # ---------------------------------------------------------
-    # MOUSE DETECTION HELPERS
+    # MOUSE HELPERS
     # ---------------------------------------------------------
     def get_hover_cell(self, mpos):
         mx, my = mpos
@@ -231,7 +267,6 @@ class CraftingTable:
                 y = sy + r * (CELL + PADDING)
                 if pygame.Rect(x, y, CELL, CELL).collidepoint(mx, my):
                     return (c, r)
-
         return None
 
     def hover_output(self, mpos):
@@ -245,5 +280,4 @@ class CraftingTable:
         out_x = sx + total // 2 - CELL // 2
         out_y = sy + total + 20
 
-        rect = pygame.Rect(out_x, out_y, CELL, CELL)
-        return rect.collidepoint(mx, my)
+        return pygame.Rect(out_x, out_y, CELL, CELL).collidepoint(mx, my)
