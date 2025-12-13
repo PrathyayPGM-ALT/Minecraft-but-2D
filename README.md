@@ -153,5 +153,9 @@ Open a PR or issue if you want to add features or fix bugs.
 
 ---
 
+## Thank You
+Thank you to my friends on Discord
+- Blake (h0hx) pls stop changing usernames
+- Craxzy (Trying to flex Nitro)
 ## ⭐ Like the project?  
 Leave a **star ⭐ on GitHub** and follow **PrathyayPGM-ALT** for more chaos-powered projects.  
