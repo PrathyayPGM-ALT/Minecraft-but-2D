@@ -114,12 +114,14 @@ Minecraft-but-2D/
       <img 
         src="https://github.com/user-attachments/assets/92e17592-fa8e-48c5-aadc-615514669d5a" 
         width="388"
+        height = "292"
       />
     </td>
     <td align="center">
       <img 
         src="https://github.com/user-attachments/assets/fd6af342-a793-4f82-847e-2c5b20cad6c5" 
         width="388"
+        height = "292"
       />
     </td>
   </tr>
