@@ -286,7 +286,7 @@ class IronOre(Block):
         self.health = 200
     def load_img(self):
         try:
-            iron = pygame.image.load("textures/iron.png").convert_alpha()
+            iron = pygame.image.load("textures/ironore.png").convert_alpha()
             return pygame.transform.scale(iron, (50, 50))
         except pygame.error as er:
             print(f"error loading iron block: {er}")
