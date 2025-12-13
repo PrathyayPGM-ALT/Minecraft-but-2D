@@ -60,7 +60,7 @@ Created by **PrathyayPGM-ALT** (the ultimate chaos dev).
 | Open Crafting Table | E |
 | Select Hotbar Slot | 1–9 |
 | Previous / Next Slot | [ or ] |
-| Craft Item | SPACE |
+| Craft Item | Mouse Click |
 | Sprint | Left Shift |
 
 ---
