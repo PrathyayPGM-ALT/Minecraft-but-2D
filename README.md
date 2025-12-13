@@ -104,7 +104,7 @@ Minecraft-but-2D/
 ```
 
 ---
-## ScreenShots
+## Screenshots
 
 <div align="center">
 
@@ -129,7 +129,7 @@ Minecraft-but-2D/
 
 </div>
 
-
+---
 
 ## 🛠️ To-Do / Future Features
 - Tools (pickaxes change mining speed)  
