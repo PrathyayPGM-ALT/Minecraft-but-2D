@@ -105,15 +105,6 @@ Minecraft-but-2D/
 
 ---
 
-## 💥 Screenshots  
-*(Add your game screenshots here)*  
-```markdown
-<img width="998" height="839" alt="image" src="https://github.com/user-attachments/assets/d68a8d83-a0cc-4d73-abbc-7db039326233" />
-
-```
-
----
-
 ## 🛠️ To-Do / Future Features
 - Tools (pickaxes change mining speed)  
 - Smelting & furnaces  
