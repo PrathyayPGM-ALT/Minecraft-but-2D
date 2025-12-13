@@ -18,6 +18,33 @@ BLOCK_HEALTH = 100
 DAY_COLOR = (135, 206, 235)
 NIGHT_COLOR = (20, 20, 50)    
 is_day = True  
+TOOL_STATS = {
+    None: {
+        "mining_speed": 1,
+        "attack": 1
+    },
+
+    "wood_pickaxe": {
+        "mining_speed": 3,
+        "attack": 1
+    },
+
+    "stone_pickaxe": {
+        "mining_speed": 7,
+        "attack": 1
+    },
+
+    "wood_sword": {
+        "mining_speed": 1,
+        "attack": 3
+    },
+
+    "stone_sword": {
+        "mining_speed": 1,
+        "attack": 5
+    }
+}
+
 
 HOTBAR_SLOTS = 9  
 SLOT_SIZE = 40    
@@ -458,8 +485,6 @@ class Player:
                 self.rect.top = block.rect.bottom
                 self.world_pos[1] = self.rect.y  
                 break
-    def craft(self):
-        pass
     def load_heart_images(self):
         try:
             heart_full = pygame.image.load("textures/heart_full.png").convert_alpha()
@@ -489,6 +514,14 @@ class Player:
                 "half": half_heart,
                 "empty": empty
             }
+    def update_held_item_stats(self):
+        item = self.inventory[self.selected_slot]["type"]
+
+        stats = TOOL_STATS.get(item, TOOL_STATS[None])
+
+        self.mining_speed = stats["mining_speed"]
+        self.attack = stats["attack"]
+
 player = Player()
 crafting = CraftingTable(player.inventory)
 show_crafting = False
@@ -1309,14 +1342,9 @@ while running:
     mouse_pos = pygame.mouse.get_pos()
     world_x = mouse_pos[0] + camera.camera.x
     world_y = mouse_pos[1] + camera.camera.y
+    player.update_held_item_stats()
 
-    if mouse_buttons[0]:  
-        for block in nearby_blocks[:]:
-            if isinstance(block, Bedrock):
-                continue
-            block_rect = pygame.Rect(block.rect.x - camera.camera.x, 
-                                    block.rect.y - camera.camera.y,
-                                    block.rect.width, block.rect.height)
+
             
     if mouse_buttons[0]:  
         for block in nearby_blocks[:]:
@@ -2956,6 +2984,7 @@ while running:
                 
     nearby_blocks = world.get_nearby_blocks((player.rect.x, player.rect.y), 1000)
     player.update(nearby_blocks)
+    
     camera.update(player)
     world.update_particles()
 
