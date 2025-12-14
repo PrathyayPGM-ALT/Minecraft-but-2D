@@ -25,12 +25,12 @@ TOOL_STATS = {
     },
 
     "wood_pickaxe": {
-        "mining_speed": 3,
+        "mining_speed": 2,
         "attack": 1
     },
 
     "stone_pickaxe": {
-        "mining_speed": 7,
+        "mining_speed": 3, 
         "attack": 1
     },
 
