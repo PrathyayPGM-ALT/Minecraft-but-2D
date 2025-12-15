@@ -1,3 +1,4 @@
+# not for use (for now) but will be later
 import random
 import math
 
@@ -37,19 +38,12 @@ class TerrainGenerator:
         height = self.get_height(x)
 
         for y in range(height):
-            # Convert column index → world Y coordinate
             world_y = world_height - (height - y) * BLOCK_SIZE
-
-            # --- Surface layers ---
             if y == height - 1:
-                # Top block
                 column.append(("grass", world_y))
 
             elif y >= height - 6:
-                # Thick dirt layer (polish)
                 column.append(("dirt", world_y))
-
-            # --- Underground ---
             else:
                 r = random.random()
 
