@@ -83,6 +83,36 @@ def load_item_icons():
             print(f"[WARNING] Missing icon: textures/{item}.png")
 load_item_icons()
 
+class Button:
+    def __init__(self, rect, text, font, bg=(60,60,60), hover=(100,100,100), text_color=(255,255,255)):
+        self.rect = pygame.Rect(rect)
+        self.text = text
+        self.font = font
+        self.bg = bg
+        self.hover = hover
+        self.text_color = text_color
+
+    def draw(self, screen):
+        mouse_pos = pygame.mouse.get_pos()
+        color = self.hover if self.rect.collidepoint(mouse_pos) else self.bg
+        pygame.draw.rect(screen, color, self.rect, border_radius=8)
+        pygame.draw.rect(screen, (255,255,255), self.rect, 2, border_radius=8)
+
+        text_surf = self.font.render(self.text, True, self.text_color)
+        screen.blit(
+            text_surf,
+            (self.rect.centerx - text_surf.get_width()//2,
+             self.rect.centery - text_surf.get_height()//2)
+        )
+
+    def is_clicked(self, event):
+        return (
+            event.type == pygame.MOUSEBUTTONDOWN and
+            event.button == 1 and
+            self.rect.collidepoint(event.pos)
+        )
+
+
 class Particle:
     def __init__(self, x, y, color):
         self.x = x
@@ -525,6 +555,15 @@ class Player:
 player = Player()
 crafting = CraftingTable(player.inventory)
 show_crafting = False
+
+def respawn_player(player, world):
+    player.world_pos = [500, HEIGHT - 200]
+    player.gravity = 0
+    player.health = player.max_health
+    player.damage_frames = 0
+    player.mining_block = None
+    player.mining_progress = 0
+
 # passive mobs
 class Pig:
     def __init__(self):
@@ -1174,14 +1213,35 @@ except:
     hurt_sound = mixer.Sound(buffer=bytearray(100))
 
 running = True
+game_state = "playing"  # playing | dead
+
 clock = pygame.time.Clock()
+death_font = pygame.font.SysFont(None, 72)
+button_font = pygame.font.SysFont(None, 36)
+
+respawn_button = Button(
+    rect=(WIDTH//2 - 120, HEIGHT//2 + 40, 240, 50),
+    text="RESPAWN",
+    font=button_font,
+    bg=(40,120,40),
+    hover=(70,170,70)
+)
+
+exit_button = Button(
+    rect=(WIDTH//2 - 120, HEIGHT//2 + 110, 240, 50),
+    text="EXIT",
+    font=button_font,
+    bg=(120,40,40),
+    hover=(170,70,70)
+)
 
 while running:
 
     mouse_wheel_up = False
     mouse_wheel_down = False
+    events = pygame.event.get()
     
-    for event in pygame.event.get():
+    for event in events:
         if event.type == pygame.QUIT:
             world.save()
             running = False
@@ -1234,7 +1294,36 @@ while running:
 
     keys = pygame.key.get_pressed()
     #print("DEBUG INVENTORY:", player.inventory)
+    if game_state == "dead":
+        screen.fill((10, 10, 10))
 
+        title = death_font.render("GET WRECKED LOL", True, (200, 0, 0))
+        screen.blit(
+            title,
+            (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 120)
+        )
+
+        respawn_button.draw(screen)
+        exit_button.draw(screen)
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                world.save()
+                pygame.quit()
+                sys.exit()
+
+            if respawn_button.is_clicked(event):
+                respawn_player(player, world)
+                game_state = "playing"
+
+            if exit_button.is_clicked(event):
+                world.save()
+                pygame.quit()
+                sys.exit()
+
+        pygame.display.flip()
+        clock.tick(60)
+        continue
     if show_crafting:
         mouse_pos = pygame.mouse.get_pos()
         mouse_buttons = pygame.mouse.get_pressed()
@@ -1274,6 +1363,9 @@ while running:
         player.world_pos[0] += player.speed
         player.image = player.original_image
         player.facing_right = True
+    
+
+
 
 
 
@@ -1288,14 +1380,9 @@ while running:
     else:
         player.damage_frames = 0 
     
-    if player.health < 1:
-        screen.fill(BLACK)
-        font = pygame.font.SysFont(None, 72)
-        text = font.render("GET WRECKED LOL", True, (255, 0, 0))
-        screen.blit(text, (WIDTH//2 - text.get_width()//2, HEIGHT//2 - text.get_height()//2))
-        pygame.display.flip()
-        time.sleep(2)
-        running = False
+    if player.health <= 0:
+        game_state = "dead"
+
     if pygame.time.get_ticks() % 120000 < 60000: 
         is_day = True
     else:
