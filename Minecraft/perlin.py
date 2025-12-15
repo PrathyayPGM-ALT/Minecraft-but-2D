@@ -1,4 +1,5 @@
 # perlin.py
+# not for use (for now) but will be later
 import math
 import random
 
