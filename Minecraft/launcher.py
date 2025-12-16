@@ -16,7 +16,6 @@ ACCENT = "#ff3b3b"
 TEXT = "#eaeaea"
 
 
-
 root = tk.Tk()
 root.title(APP_NAME)
 root.geometry(f"{WIDTH}x{HEIGHT}")
