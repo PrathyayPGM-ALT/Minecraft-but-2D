@@ -1618,7 +1618,7 @@ while running:
 
     fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, (255, 0, 0))
     screen.blit(fps_text, (10, 10))
-    text = font.render(f"FATALCRAFT, ALPHA VERSION 1.1", True, (255, 255, 255))
+    text = font.render(f"FATALCRAFT, ALPHA VERSION 1.1.2", True, (255, 255, 255))
     screen.blit(text, (10, 30))
     
     if player.mining_block:
