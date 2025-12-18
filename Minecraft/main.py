@@ -1324,23 +1324,6 @@ while running:
         pygame.display.flip()
         clock.tick(60)
         continue
-    if show_crafting:
-        mouse_pos = pygame.mouse.get_pos()
-        mouse_buttons = pygame.mouse.get_pressed()
-
-        selected_item = player.inventory[player.selected_slot]["type"]
-
-        # handle crafting actions
-        crafting.handle_click(mouse_pos, mouse_buttons, selected_item)
-
-        # draw crafting UI
-        crafting.draw(screen)
-
-
-
-        pygame.display.flip()
-        continue  # <--- ONLY ONE continue, at the END
-
 
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         player.world_pos[0] -= player.speed
@@ -1409,6 +1392,7 @@ while running:
 
     if is_day and creepers:
         creepers.clear()
+
 
     if is_day and current_time - last_spawn_time > spawn_interval and len(pigs) < max_pigs:
         pigs.append(Pig())
@@ -1632,6 +1616,18 @@ while running:
         pygame.draw.rect(screen, (255, 255, 255), 
                         (block_rect.x, block_rect.y - 10, 
                          block_rect.width * progress_pct, 5))
+    
+    if show_crafting:
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_buttons = pygame.mouse.get_pressed()
+
+        selected_item = player.inventory[player.selected_slot]["type"]
+
+        # handle crafting actions
+        crafting.handle_click(mouse_pos, mouse_buttons, selected_item)
+
+        # draw crafting UI
+        crafting.draw(screen)
     
     pygame.display.flip()
     clock.tick(60) 
