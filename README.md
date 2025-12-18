@@ -92,6 +92,7 @@ Minecraft-but-2D/
 ├── Minecraft/
 │   ├── main.py
 │   ├── crafting.py
+|   ├── launcher.py
 │   ├── textures/
 │   │   ├── dirt.png
 │   │   ├── stone.png
