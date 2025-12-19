@@ -6,7 +6,8 @@ import pickle
 from pygame import mixer
 import time
 from crafting import CraftingTable
-
+import platform
+import os
 
 # constants
 WIDTH, HEIGHT = 1000, 800
@@ -16,7 +17,11 @@ SKY_BLUE = (135, 206, 235)
 MAX_FALL_DISTANCE = 1000
 BLOCK_HEALTH = 100
 DAY_COLOR = (135, 206, 235)
-NIGHT_COLOR = (20, 20, 50)    
+NIGHT_COLOR = (20, 20, 50)  
+OS_NAME = platform.system()
+OS_VERSION = platform.version()
+OS_RELEASE = platform.release()
+ARCH = platform.machine()  
 is_day = True  
 TOOL_STATS = {
     None: {
@@ -1214,6 +1219,7 @@ except:
 
 running = True
 game_state = "playing"  # playing | dead
+show_debug = False
 
 clock = pygame.time.Clock()
 death_font = pygame.font.SysFont(None, 72)
@@ -1261,9 +1267,13 @@ while running:
             elif event.key == pygame.K_RIGHTBRACKET:  
                 player.selected_slot = (player.selected_slot + 1) % HOTBAR_SLOTS
             
+
+            
             if event.key == pygame.K_ESCAPE:
                 world.save()
                 running = False
+            
+
         
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pygame.mouse.get_pos()
@@ -1324,6 +1334,7 @@ while running:
         pygame.display.flip()
         clock.tick(60)
         continue
+    show_debug = keys[pygame.K_F3]
 
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         player.world_pos[0] -= player.speed
@@ -1347,10 +1358,6 @@ while running:
         player.image = player.original_image
         player.facing_right = True
     
-
-
-
-
 
 
     # void damage
@@ -1604,6 +1611,22 @@ while running:
     screen.blit(fps_text, (10, 10))
     text = font.render(f"FATALCRAFT, ALPHA VERSION 1.1.2", True, (255, 255, 255))
     screen.blit(text, (10, 30))
+    if show_debug:
+        a = "Left"
+        if player.facing_right == True:
+            a = "Right"
+        debug = [
+            f"Player Coords: {camera.camera.x}, {camera.camera.y}",
+            f"Held Item Slot: {player.selected_slot}",
+            f"Direction: {a}", 
+            f"OS Type: {OS_NAME} {OS_RELEASE}",
+            f"Arch: {ARCH}"
+
+        ]
+
+        for i, line in enumerate(debug):
+            screen.blit(font.render(line, True, WHITE), (10, 60 + i * 20))
+
     
     if player.mining_block:
         block_rect = pygame.Rect(
