@@ -2,6 +2,11 @@
 A fully custom-built 2D Minecraft clone made with **Pygame**, featuring mining, crafting, mobs, particles, day/night cycle, and more.  
 Created by **PrathyayPGM-ALT** (the ultimate chaos dev).
 
+<img src="https://skillicons.dev/icons?i=pygame" width="55" /> &nbsp;&nbsp;
+
+<img src="https://skillicons.dev/icons?i=python" width="55" /> &nbsp;&nbsp;
+
+
 ---
 
 ## 🎮 Features
