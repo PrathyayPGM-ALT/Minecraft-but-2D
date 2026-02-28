@@ -37,23 +37,11 @@
 ---
 ## Video
 
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <iframe 
-          width="420" 
-          height="315"
-          src="https://www.youtube.com/embed/mh3TD6VMthE"
-          title="YouTube video player"
-          frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen>
-        </iframe>
-      </td>
-    </tr>
-  </table>
-</div>
+<p align="center">
+  <a href="https://youtu.be/mh3TD6VMthE">
+    <img src="https://img.youtube.com/vi/mh3TD6VMthE/0.jpg" alt="Watch the video" width="420"/>
+  </a>
+</p>
 
 ---
 ## Features
