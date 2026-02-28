@@ -9,7 +9,7 @@ from crafting import CraftingTable
 import platform
 import os
 
-# constants
+
 WIDTH, HEIGHT = 1000, 800
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -17,12 +17,12 @@ SKY_BLUE = (135, 206, 235)
 MAX_FALL_DISTANCE = 1000
 BLOCK_HEALTH = 100
 DAY_COLOR = (135, 206, 235)
-NIGHT_COLOR = (20, 20, 50)  
+NIGHT_COLOR = (20, 20, 50)
 OS_NAME = platform.system()
 OS_VERSION = platform.version()
 OS_RELEASE = platform.release()
-ARCH = platform.machine()  
-is_day = True  
+ARCH = platform.machine()
+is_day = True
 TOOL_STATS = {
     None: {
         "mining_speed": 1,
@@ -35,7 +35,7 @@ TOOL_STATS = {
     },
 
     "stone_pickaxe": {
-        "mining_speed": 3, 
+        "mining_speed": 3,
         "attack": 1
     },
 
@@ -51,18 +51,19 @@ TOOL_STATS = {
 }
 
 
-HOTBAR_SLOTS = 9  
-SLOT_SIZE = 40    
+HOTBAR_SLOTS = 9
+SLOT_SIZE = 40
 HOTBAR_WIDTH = HOTBAR_SLOTS * SLOT_SIZE
 HOTBAR_HEIGHT = SLOT_SIZE
-HOTBAR_MARGIN = 10  
-SELECTED_COLOR = (255, 255, 0)  
+HOTBAR_MARGIN = 10
+SELECTED_COLOR = (255, 255, 0)
 block = 50
 
 pygame.init()
 mixer.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("FatalCraft")
+is_fullscreen = False
 
 font = pygame.font.SysFont('Arial', 20)
 
@@ -127,122 +128,167 @@ class Particle:
         self.vx = random.uniform(-2, 2)
         self.vy = random.uniform(-5, -1)
         self.lifetime = random.randint(20, 40)
-        
+
     def update(self):
         self.x += self.vx
         self.y += self.vy
         self.vy += 0.1
         self.lifetime -= 1
         return self.lifetime > 0
-        
+
     def draw(self, screen, camera):
-        pygame.draw.circle(screen, self.color, 
-                         (int(self.x - camera.camera.x), int(self.y - camera.camera.y)), 
+        pygame.draw.circle(screen, self.color,
+                         (int(self.x - camera.camera.x), int(self.y - camera.camera.y)),
                          self.size)
 
 class World:
     def __init__(self):
         self.blocks = []
-        self.chunks = {}  
+        self.chunks = {}
         self.particles = []
-        
+        self.generated_chunk_cols = set()
+
     def add_block(self, block):
         self.blocks.append(block)
-        chunk_x = block.rect.x // (16*50)  
+        chunk_x = block.rect.x // (16*50)
         chunk_y = block.rect.y // (16*50)
         if (chunk_x, chunk_y) not in self.chunks:
             self.chunks[(chunk_x, chunk_y)] = []
         self.chunks[(chunk_x, chunk_y)].append(block)
-        
+
     def get_nearby_blocks(self, position, radius):
         nearby = []
         chunk_radius = radius // (16*50) + 1
         center_chunk_x = position[0] // (16*50)
         center_chunk_y = position[1] // (16*50)
-        
+
         for x in range(center_chunk_x - chunk_radius, center_chunk_x + chunk_radius + 1):
             for y in range(center_chunk_y - chunk_radius, center_chunk_y + chunk_radius + 1):
                 if (x, y) in self.chunks:
                     nearby.extend(self.chunks[(x, y)])
         return nearby
-    
+
     def add_particles(self, particles):
         self.particles.extend(particles)
-    
+
     def update_particles(self):
         self.particles = [p for p in self.particles if p.update()]
-    
+
     def draw_particles(self, screen, camera):
         for particle in self.particles:
             particle.draw(screen, camera)
-    
+
     def save(self, filename="world.dat"):
         with open(filename, 'wb') as f:
-            pickle.dump([(block.x, block.y, block.__class__.__name__) for block in self.blocks], f)
-    
+            data = {
+                'version': 2,
+                'blocks': [(block.x, block.y, block.__class__.__name__) for block in self.blocks],
+                'generated_cols': list(self.generated_chunk_cols),
+            }
+            pickle.dump(data, f)
+
     def load(self, filename="world.dat"):
         try:
             with open(filename, 'rb') as f:
-                blocks_data = pickle.load(f)
-                self.blocks = []
-                self.chunks = {}
-                for x, y, block_type in blocks_data:
-                    if block_type == "Grassblock":
-                        self.add_block(Grassblock(x, y))
-                    elif block_type == "Dirtblock":
-                        self.add_block(Dirtblock(x, y))
-                    elif block_type == "Stoneblock":
-                        self.add_block(Stoneblock(x, y))
-                    elif block_type == "Wood":
-                        self.add_block(Wood(x, y))
-                    elif block_type == "Leaves":
-                        self.add_block(Leaves(x, y))
-                    elif block_type == "IronOre":
-                        self.add_block(IronOre(x, y))
-                    elif block_type == "Coal":
-                        self.add_block(Coal(x, y))
-                    elif block_type == "Diamond":
-                        self.add_block(Diamond(x, y))
-                    elif block_type == "Bedrock":
-                        self.add_block(Bedrock(x, y))
+                raw = pickle.load(f)
+
+
+            if isinstance(raw, dict) and raw.get('version') == 2:
+                blocks_data = raw['blocks']
+                self.generated_chunk_cols = set(raw.get('generated_cols', []))
+            else:
+
+
+                blocks_data = raw if isinstance(raw, list) else []
+                self.generated_chunk_cols = set()
+
+            self.blocks = []
+            self.chunks = {}
+            for x, y, block_type in blocks_data:
+                if block_type == "Grassblock":
+                    self.add_block(Grassblock(x, y))
+                elif block_type == "Dirtblock":
+                    self.add_block(Dirtblock(x, y))
+                elif block_type == "Stoneblock":
+                    self.add_block(Stoneblock(x, y))
+                elif block_type == "Wood":
+                    self.add_block(Wood(x, y))
+                elif block_type == "Leaves":
+                    self.add_block(Leaves(x, y))
+                elif block_type == "IronOre":
+                    self.add_block(IronOre(x, y))
+                elif block_type == "Coal":
+                    self.add_block(Coal(x, y))
+                elif block_type == "Diamond":
+                    self.add_block(Diamond(x, y))
+                elif block_type == "Bedrock":
+                    self.add_block(Bedrock(x, y))
 
         except FileNotFoundError:
             print("No saved world found - generating new one")
             self.generate_world()
-    
+
     def generate_world(self):
-        bedrock_depth = HEIGHT + (50 * 50)
-        for x in range(-WIDTH, WIDTH*20, 50):
-            self.add_block(Bedrock(x, bedrock_depth))
 
-        for x in range(-WIDTH, WIDTH*20, 50):
-            self.add_block(Grassblock(x, HEIGHT - 50))
-            self.add_block(Dirtblock(x, HEIGHT))
-            self.add_block(Dirtblock(x, HEIGHT + 50))
+        for col in range(-2, 12):
+            self.ensure_chunk_col(col)
 
-            for y in range(HEIGHT + 100, HEIGHT + (50 * 50), 50):
-                depth = y - HEIGHT  
-                
-                if random.random() < 0.05:  
-                    if depth > 800 and random.random() < 0.3:
-                        self.add_block(Diamond(x, y))
-                    elif depth > 500 and random.random() < 0.5: 
-                        self.add_block(IronOre(x, y))
-                    else: 
-                        self.add_block(Coal(x, y))
-                else:
-                    self.add_block(Stoneblock(x, y))
-            
-            if x % 200 == 0 and random.random() < 0.35:
-                is_surface = True
-                for block in self.blocks:
-                    if block.rect.x == x and block.rect.y == HEIGHT - 50 and isinstance(block, Grassblock):
-                        self.generate_tree(x, HEIGHT - 100)
-                        break
+    def ensure_chunk_col(self, chunk_col_x):
+        """Generate terrain for a chunk column (16 blocks wide) if not yet generated."""
+        if chunk_col_x in self.generated_chunk_cols:
+            return
+        self.generated_chunk_cols.add(chunk_col_x)
 
-        
+        block_size = 50
+        chunk_width = 16 * block_size
+        surface_y = HEIGHT - 50
+        bedrock_y = HEIGHT + (50 * 50)
+
+
+        existing = set()
+        min_cy = surface_y // chunk_width - 1
+        max_cy = bedrock_y // chunk_width + 2
+        for cy in range(min_cy, max_cy):
+            for blk in self.chunks.get((chunk_col_x, cy), []):
+                existing.add((blk.rect.x, blk.rect.y))
+
+        for i in range(16):
+            x = chunk_col_x * chunk_width + i * block_size
+
+
+            is_new_surface = (x, surface_y) not in existing
+            if is_new_surface:
+                self.add_block(Grassblock(x, surface_y))
+            if (x, surface_y + block_size) not in existing:
+                self.add_block(Dirtblock(x, surface_y + block_size))
+            if (x, surface_y + block_size * 2) not in existing:
+                self.add_block(Dirtblock(x, surface_y + block_size * 2))
+
+
+            for y in range(surface_y + block_size * 3, bedrock_y, block_size):
+                if (x, y) not in existing:
+                    depth = y - surface_y
+                    if random.random() < 0.05:
+                        if depth > 800 and random.random() < 0.3:
+                            self.add_block(Diamond(x, y))
+                        elif depth > 500 and random.random() < 0.5:
+                            self.add_block(IronOre(x, y))
+                        else:
+                            self.add_block(Coal(x, y))
+                    else:
+                        self.add_block(Stoneblock(x, y))
+
+
+            if (x, bedrock_y) not in existing:
+                self.add_block(Bedrock(x, bedrock_y))
+
+
+            if is_new_surface and random.random() < 0.10:
+                self.generate_tree(x, surface_y - block_size)
+
+
     def generate_tree(self, x, y):
-        
+
         tree = Tree(x, y, self)
         tree.generate()
 
@@ -251,10 +297,10 @@ class Camera:
         self.camera = pygame.Rect(0, 0, width, height)
         self.width = width
         self.height = height
-    
+
     def apply(self, entity):
         return entity.rect.move(-self.camera.x, -self.camera.y)
-    
+
     def update(self, target):
         x = target.rect.centerx - self.width // 2
         y = target.rect.centery - self.height // 2
@@ -279,7 +325,7 @@ class Block:
             health_width = int(bar_width * health_pct)
             health_color = (0, 255, 0) if health_pct > 0.6 else (255, 255, 0) if health_pct > 0.3 else (255, 0, 0)
             pygame.draw.rect(screen, health_color, (bar_x, bar_y, health_width, 5))
-            
+
     def draw(self, screen, camera):
         screen.blit(self.image, (self.rect.x - camera.camera.x, self.rect.y - camera.camera.y))
 
@@ -287,7 +333,7 @@ class Grassblock(Block):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.health = 50
-    
+
     def load_img(self):
         try:
             grass_block = pygame.image.load("textures/grass.png").convert_alpha()
@@ -295,7 +341,7 @@ class Grassblock(Block):
         except pygame.error as er:
             print(f"Error loading grass block: {er}")
             placeholder = pygame.Surface((50, 50))
-            placeholder.fill((0, 255, 0))  
+            placeholder.fill((0, 255, 0))
             return placeholder
 
 class Dirtblock(Block):
@@ -309,9 +355,9 @@ class Dirtblock(Block):
         except pygame.error as er:
             print(f"Error loading dirt block: {er}")
             placeholder = pygame.Surface((50, 50))
-            placeholder.fill((139, 69, 19))  
+            placeholder.fill((139, 69, 19))
             return placeholder
-        
+
 class Stickblock:
     def __init__(self, x, y):
         try:
@@ -322,10 +368,9 @@ class Stickblock:
             self.image.fill((200, 200, 200))
 
     def draw(self, surface, x, y):
-        # Your engine scales the image BEFORE calling draw(),
-        # so here we only blit it.
-        surface.blit(self.image, (x, y))
 
+
+        surface.blit(self.image, (x, y))
 
 
 class Stoneblock(Block):
@@ -339,7 +384,7 @@ class Stoneblock(Block):
         except pygame.error as er:
             print(f"Error loading stone block: {er}")
             placeholder = pygame.Surface((50, 50))
-            placeholder.fill((128, 128, 128))  
+            placeholder.fill((128, 128, 128))
             return placeholder
 
 class IronOre(Block):
@@ -355,7 +400,7 @@ class IronOre(Block):
             placeholder = pygame.surface((50, 50))
             placeholder.fill((74, 75, 76))
             return placeholder
-        
+
 class Coal(Block):
     def __init__(self,x, y):
         super().__init__(x, y)
@@ -369,7 +414,7 @@ class Coal(Block):
             placeholder = pygame.surface((50, 50))
             placeholder.fill((54, 69, 79))
             return placeholder
-        
+
 class Diamond(Block):
     def __init__(self, x, y):
         super().__init__(x, y)
@@ -400,7 +445,7 @@ class Wood(Block):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.health = 100
-    
+
     def load_img(self):
         try:
             wood = pygame.image.load("textures/wood.png").convert_alpha()
@@ -415,7 +460,7 @@ class Leaves(Block):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.health = 10
-    
+
     def load_img(self):
         try:
             leaf = pygame.image.load("textures/leaves.png").convert_alpha()
@@ -433,20 +478,20 @@ class Tree:
         self.height = random.randint(4, 7)
         self.height = random.randint(4, 7)
         if random.random() < 0.2:
-            self.height += random.randint(1, 2) 
-        
+            self.height += random.randint(1, 2)
+
     def generate(self):
         for i in range(self.height):
             self.world.add_block(Wood(self.x, self.y - (i * 50)))
 
-        leaves_width = 3  
-        leaves_start = 1  
-        
-        for layer in range(leaves_start, self.height - 1): 
+        leaves_width = 3
+        leaves_start = 1
+
+        for layer in range(leaves_start, self.height - 1):
             y_pos = self.y - (layer * 50)
 
             for i in range(-(leaves_width//2), (leaves_width//2) + 1):
-                if random.random() > 0.2:  
+                if random.random() > 0.2:
                     self.world.add_block(Leaves(self.x + (i * 50), y_pos))
 
         top_y = self.y - ((self.height - 1) * 50)
@@ -461,7 +506,7 @@ class Player:
     def __init__(self):
         self.world_pos = [500, HEIGHT - 200]
         self.original_image = self.load_img()
-        self.image = self.original_image 
+        self.image = self.original_image
         self.jump_power = -20
         self.can_jump = True
         self.gravity = 0
@@ -478,59 +523,73 @@ class Player:
         self.inventory = {i: {"type": None, "count": 0} for i in range(9)}
         self.mining_block = None
         self.mining_progress = 0
-        self.mining_speed = 1  
+        self.mining_speed = 1
         self.max_mine_distance = 250
-        self.max_safe_fall = 25 
-        self.fall_damage = 0  
+        self.max_safe_fall = 25
+        self.fall_damage = 0
         self.attack = 1
-        self.heart_size = 20 
+        self.heart_size = 20
         self.heart_images = self.load_heart_images()
-        
-                
-    def load_img(self): 
+
+
+    def load_img(self):
         try:
             steve_img = pygame.image.load("textures/steve.png").convert_alpha()
-            return pygame.transform.scale(steve_img, (50, 150))  
+            return pygame.transform.scale(steve_img, (50, 150))
         except pygame.error as e:
             print(f"Error loading image: {e}")
             placeholder = pygame.Surface((50, 150))
-            placeholder.fill((255, 0, 0))  
+            placeholder.fill((255, 0, 0))
             return placeholder
-    def update(self, ground_blocks):
+    def update(self, ground_blocks, dx=0):
+        self.world_pos[0] += dx
+        self.rect.x = self.world_pos[0]
+        for block in ground_blocks:
+            if isinstance(block, (Wood, Leaves)):
+                continue
+            if self.rect.colliderect(block.rect):
+                if dx > 0:
+                    self.rect.right = block.rect.left
+                elif dx < 0:
+                    self.rect.left = block.rect.right
+                self.world_pos[0] = self.rect.x
+                break
+
         self.world_pos[1] += self.gravity
         self.gravity += 0.8
-
         self.on_ground = False
-        self.rect.x = self.world_pos[0]
         self.rect.y = self.world_pos[1]
 
         for block in ground_blocks:
-            if self.rect.colliderect(block.rect) and self.gravity >= 0 and self.rect.bottom > block.rect.top:
-                if self.gravity > self.max_safe_fall:
-                    self.health -= (self.gravity - self.max_safe_fall) * 0.2
-                    hurt_sound.play()
-                self.on_ground = True
-                self.can_jump = True  
-                self.gravity = 0
-                self.rect.bottom = block.rect.top
-                self.world_pos[1] = self.rect.y  
-                break
-            elif self.gravity < 0 and self.rect.top < block.rect.bottom and self.rect.colliderect(block.rect):
-                self.gravity = 0
-                self.rect.top = block.rect.bottom
-                self.world_pos[1] = self.rect.y  
-                break
+            if isinstance(block, (Wood, Leaves)):
+                continue
+            if self.rect.colliderect(block.rect):
+                if self.gravity >= 0:
+                    if self.gravity > self.max_safe_fall:
+                        self.health -= (self.gravity - self.max_safe_fall) * 0.2
+                        hurt_sound.play()
+                    self.on_ground = True
+                    self.can_jump = True
+                    self.gravity = 0
+                    self.rect.bottom = block.rect.top
+                    self.world_pos[1] = self.rect.y
+                    break
+                else:
+                    self.gravity = 0
+                    self.rect.top = block.rect.bottom
+                    self.world_pos[1] = self.rect.y
+                    break
     def load_heart_images(self):
         try:
             heart_full = pygame.image.load("textures/heart_full.png").convert_alpha()
             heart_half = pygame.image.load("textures/heart_half.png").convert_alpha()
             heart_empty = pygame.image.load("textures/heart_empty.png").convert_alpha()
-            
-            # Scale images if needed
+
+
             heart_full = pygame.transform.scale(heart_full, (self.heart_size, self.heart_size))
             heart_half = pygame.transform.scale(heart_half, (self.heart_size, self.heart_size))
             heart_empty = pygame.transform.scale(heart_empty, (self.heart_size, self.heart_size))
-            
+
             return {
                 "full": heart_full,
                 "half": heart_half,
@@ -569,7 +628,7 @@ def respawn_player(player, world):
     player.mining_block = None
     player.mining_progress = 0
 
-# passive mobs
+
 class Pig:
     def __init__(self):
         self.world_pos = [random.randint(1, 999), HEIGHT - 200]
@@ -579,19 +638,19 @@ class Pig:
         self.rect = pygame.Rect(self.world_pos[0], self.world_pos[1], (50 * 0.9) * 1.3, 59.375 * 1.3)
         self.speed = random.uniform(1.0, 3.0)
         self.health = 5
-        self.max_health = 5 
-        self.facing_right = random.choice([True, False]) 
-        self.max_safe_fall = 15  
-        self.knockback = 0 
-        self.knockback_resistance = 0.8  
+        self.max_health = 5
+        self.facing_right = random.choice([True, False])
+        self.max_safe_fall = 15
+        self.knockback = 0
+        self.knockback_resistance = 0.8
         self.knockback_direction = 1
         self.on_ground = False
         self.hit_cooldown = 0
         self.move_direction = 1 if self.facing_right else -1
-        self.move_timer = random.randint(120, 240) 
+        self.move_timer = random.randint(120, 240)
         self.idle_timer = 0
-        self.current_state = "wandering"  
-        self.jump_power = -15  
+        self.current_state = "wandering"
+        self.jump_power = -15
         self.can_jump = True
         self.jump_cooldown = 0
 
@@ -602,39 +661,39 @@ class Pig:
         except pygame.error as er:
             print(f"Error loading image: {er}")
             placeholder = pygame.Surface(((50 * 0.9) * 1.3, 59.375 * 1.3))
-            placeholder.fill((255, 192, 203))  
+            placeholder.fill((255, 192, 203))
             return placeholder
 
     def update(self, ground_blocks):
         if self.knockback > 0:
             self.world_pos[0] += self.knockback_direction * self.knockback
-            self.knockback *= self.knockback_resistance  
-            if self.knockback < 0.5:  
+            self.knockback *= self.knockback_resistance
+            if self.knockback < 0.5:
                 self.knockback = 0
 
         if self.current_state == "wandering":
             self.move_timer -= 1
             if self.move_timer <= 0:
                 choice = random.random()
-                if choice < 0.3:  
+                if choice < 0.3:
                     self.current_state = "idle"
                     self.idle_timer = random.randint(60, 120)
-                elif choice < 0.6:  
+                elif choice < 0.6:
                     self.move_direction *= -1
                     self.move_timer = random.randint(120, 240)
-                else:  
+                else:
                     self.move_timer = random.randint(60, 180)
-            
+
             self.world_pos[0] += self.move_direction * self.speed
-            
-            
+
+
         elif self.current_state == "idle":
             self.idle_timer -= 1
             if self.idle_timer <= 0:
                 self.current_state = "wandering"
                 self.move_timer = random.randint(120, 240)
                 self.move_direction = random.choice([self.move_direction, -self.move_direction])
-        
+
 
         self.gravity = min(self.gravity + 0.8, 20)
         self.world_pos[1] += self.gravity
@@ -649,15 +708,15 @@ class Pig:
                 if self.gravity > self.max_safe_fall:
                     self.health -= (self.gravity - self.max_safe_fall) * 0.2
                 self.on_ground = True
-                self.can_jump = True  
+                self.can_jump = True
                 self.gravity = 0
                 self.rect.bottom = block.rect.top
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
             elif self.gravity < 0 and self.rect.top < block.rect.bottom and self.rect.colliderect(block.rect):
                 self.gravity = 0
                 self.rect.top = block.rect.bottom
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
 
         if self.move_direction > 0:
@@ -672,7 +731,7 @@ class Pig:
     def take_damage(self, amount):
         self.health -= amount
         self.knockback_direction = 1 if player.world_pos[1] < self.rect.x else -1
-        self.knockback = 15  
+        self.knockback = 15
         self.hit_cooldown = 10
         self.image.fill((255, 0, 0))
         return self.health <= 0
@@ -686,19 +745,19 @@ class Sheep:
         self.rect = pygame.Rect(self.world_pos[0], self.world_pos[1], (50 * 0.9) * 1.3, 59.375 * 1.3)
         self.speed = random.uniform(1.0, 3.0)
         self.health = 5
-        self.max_health = 5 
-        self.facing_right = random.choice([True, False]) 
-        self.max_safe_fall = 15  
-        self.knockback = 0 
-        self.knockback_resistance = 0.8  
+        self.max_health = 5
+        self.facing_right = random.choice([True, False])
+        self.max_safe_fall = 15
+        self.knockback = 0
+        self.knockback_resistance = 0.8
         self.knockback_direction = 1
         self.on_ground = False
         self.hit_cooldown = 0
         self.move_direction = 1 if self.facing_right else -1
-        self.move_timer = random.randint(120, 240) 
+        self.move_timer = random.randint(120, 240)
         self.idle_timer = 0
-        self.current_state = "wandering"  
-        self.jump_power = -15  
+        self.current_state = "wandering"
+        self.jump_power = -15
         self.can_jump = True
         self.jump_cooldown = 0
 
@@ -709,39 +768,39 @@ class Sheep:
         except pygame.error as er:
             print(f"Error loading image: {er}")
             placeholder = pygame.Surface(((50 * 0.9) * 1.3, 59.375 * 1.3))
-            placeholder.fill((255, 255, 255))  
+            placeholder.fill((255, 255, 255))
             return placeholder
 
     def update(self, ground_blocks):
         if self.knockback > 0:
             self.world_pos[0] += self.knockback_direction * self.knockback
-            self.knockback *= self.knockback_resistance  
-            if self.knockback < 0.5:  
+            self.knockback *= self.knockback_resistance
+            if self.knockback < 0.5:
                 self.knockback = 0
 
         if self.current_state == "wandering":
             self.move_timer -= 1
             if self.move_timer <= 0:
                 choice = random.random()
-                if choice < 0.3:  
+                if choice < 0.3:
                     self.current_state = "idle"
                     self.idle_timer = random.randint(60, 120)
-                elif choice < 0.6:  
+                elif choice < 0.6:
                     self.move_direction *= -1
                     self.move_timer = random.randint(120, 240)
-                else:  
+                else:
                     self.move_timer = random.randint(60, 180)
-            
+
             self.world_pos[0] += self.move_direction * self.speed
-            
-            
+
+
         elif self.current_state == "idle":
             self.idle_timer -= 1
             if self.idle_timer <= 0:
                 self.current_state = "wandering"
                 self.move_timer = random.randint(120, 240)
                 self.move_direction = random.choice([self.move_direction, -self.move_direction])
-        
+
 
         self.gravity = min(self.gravity + 0.8, 20)
         self.world_pos[1] += self.gravity
@@ -756,15 +815,15 @@ class Sheep:
                 if self.gravity > self.max_safe_fall:
                     self.health -= (self.gravity - self.max_safe_fall) * 0.2
                 self.on_ground = True
-                self.can_jump = True  
+                self.can_jump = True
                 self.gravity = 0
                 self.rect.bottom = block.rect.top
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
             elif self.gravity < 0 and self.rect.top < block.rect.bottom and self.rect.colliderect(block.rect):
                 self.gravity = 0
                 self.rect.top = block.rect.bottom
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
 
         if self.move_direction > 0:
@@ -779,15 +838,13 @@ class Sheep:
     def take_damage(self, amount):
         self.health -= amount
         self.knockback_direction = 1 if player.world_pos[1] < self.rect.x else -1
-        self.knockback = 15  
+        self.knockback = 15
         self.hit_cooldown = 10
- 
-        # if self.health <= 0:
-            # return wool and mutton
-        return self.health <= 0 
 
 
-# hostile mobs
+        return self.health <= 0
+
+
 class Zombie:
     def __init__(self):
         self.world_pos = [random.randint(1, 999), HEIGHT - 200]
@@ -801,10 +858,10 @@ class Zombie:
         self.max_safe_fall = 25
         self.damage = 0.01
         self.attack_cooldown = 0
-        self.attack_delay = 1000 
-        self.facing_right = True 
-        self.knockback = 0 
-        self.knockback_resistance = 0.8  
+        self.attack_delay = 1000
+        self.facing_right = True
+        self.knockback = 0
+        self.knockback_resistance = 0.8
         self.knockback_direction = 1
 
     def load_img(self):
@@ -814,7 +871,7 @@ class Zombie:
         except pygame.error as er:
             print(f"Error loading image: {er}")
             placeholder = pygame.Surface((50, 150))
-            placeholder.fill((0, 255, 0))  
+            placeholder.fill((0, 255, 0))
             return placeholder
     def update(self, ground_blocks):
         player_pos = player.world_pos
@@ -827,21 +884,21 @@ class Zombie:
         player_pos = player.world_pos
         if self.knockback > 0:
             self.world_pos[0] += self.knockback_direction * self.knockback
-            self.knockback *= self.knockback_resistance  
-            if self.knockback < 0.5:  
+            self.knockback *= self.knockback_resistance
+            if self.knockback < 0.5:
                 self.knockback = 0
 
         if self.knockback <= 0:
-            if self.world_pos[0] < player_pos[0]:  
+            if self.world_pos[0] < player_pos[0]:
                 if not self.facing_right:
                     self.facing_right = True
-                    self.image = self.original_img  
+                    self.image = self.original_img
                 self.world_pos[0] += self.speed
-            else:  
+            else:
                 if self.facing_right:
                     self.facing_right = False
-                    self.image = pygame.transform.flip(self.original_img, True, False)        
-            
+                    self.image = pygame.transform.flip(self.original_img, True, False)
+
             if player_distance <= 250:
                 if self.world_pos[0] < player_pos[0]:
                     self.world_pos[0] += self.speed
@@ -852,7 +909,7 @@ class Zombie:
                 if self.rect.colliderect(player.rect):
                     player.health -= self.damage
                     hurt_sound.play()
-                    
+
                     self.attack_cooldown = self.attack_delay
                     if self.world_pos[0] < player_pos[0]:
                         self.world_pos[0] += self.speed
@@ -864,25 +921,25 @@ class Zombie:
                 if self.gravity > self.max_safe_fall:
                     self.health -= (self.gravity - self.max_safe_fall) * 0.2
                 self.on_ground = True
-                self.can_jump = True  
+                self.can_jump = True
                 self.gravity = 0
                 self.rect.bottom = block.rect.top
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
             elif self.gravity < 0 and self.rect.top < block.rect.bottom and self.rect.colliderect(block.rect):
                 self.gravity = 0
                 self.rect.top = block.rect.bottom
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
-    
+
     def take_damage(self, amount):
         self.health -= amount
         self.knockback_direction = 1 if player.world_pos[1] < self.rect.x else -1
-        self.knockback = 15  
+        self.knockback = 15
         self.hit_cooldown = 10
         return self.health <= 0
 
-     
+
 class Spider:
     def __init__(self):
         self.world_pos = [random.randint(1, 999), HEIGHT - 200]
@@ -896,10 +953,10 @@ class Spider:
         self.max_safe_fall = 25
         self.damage = 0.01
         self.attack_cooldown = 0
-        self.attack_delay = 1000 
-        self.facing_right = True 
-        self.knockback = 0 
-        self.knockback_resistance = 0.8  
+        self.attack_delay = 1000
+        self.facing_right = True
+        self.knockback = 0
+        self.knockback_resistance = 0.8
         self.knockback_direction = 1
 
     def load_img(self):
@@ -909,7 +966,7 @@ class Spider:
         except pygame.error as er:
             print(f"Error loading image: {er}")
             placeholder = pygame.Surface((150, 50))
-            placeholder.fill((255, 0, 0))  
+            placeholder.fill((255, 0, 0))
             return placeholder
     def update(self, ground_blocks):
         player_pos = player.world_pos
@@ -922,21 +979,21 @@ class Spider:
         player_pos = player.world_pos
         if self.knockback > 0:
             self.world_pos[0] += self.knockback_direction * self.knockback
-            self.knockback *= self.knockback_resistance  
-            if self.knockback < 0.5:  
+            self.knockback *= self.knockback_resistance
+            if self.knockback < 0.5:
                 self.knockback = 0
 
         if self.knockback <= 0:
-            if self.world_pos[0] < player_pos[0]:  
+            if self.world_pos[0] < player_pos[0]:
                 if not self.facing_right:
                     self.facing_right = True
-                    self.image = self.original_img  
+                    self.image = self.original_img
                 self.world_pos[0] += self.speed
-            else:  
+            else:
                 if self.facing_right:
                     self.facing_right = False
                     self.image = pygame.transform.flip(self.original_img, True, False)
-            if player_distance <= 250:        
+            if player_distance <= 250:
                 if self.world_pos[0] < player_pos[0]:
                     self.world_pos[0] += self.speed
                 else:
@@ -957,21 +1014,21 @@ class Spider:
                 if self.gravity > self.max_safe_fall:
                     self.health -= (self.gravity - self.max_safe_fall) * 0.2
                 self.on_ground = True
-                self.can_jump = True  
+                self.can_jump = True
                 self.gravity = 0
                 self.rect.bottom = block.rect.top
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
             elif self.gravity < 0 and self.rect.top < block.rect.bottom and self.rect.colliderect(block.rect):
                 self.gravity = 0
                 self.rect.top = block.rect.bottom
-                self.world_pos[1] = self.rect.y  
+                self.world_pos[1] = self.rect.y
                 break
-    
+
     def take_damage(self, amount):
         self.health -= amount
         self.knockback_direction = 1 if player.world_pos[1] < self.rect.x else -1
-        self.knockback = 15  
+        self.knockback = 15
         self.hit_cooldown = 10
         return self.health <= 0
 
@@ -988,29 +1045,29 @@ class Creeper:
         self.max_safe_fall = 25
         self.damage = 3
         self.attack_cooldown = 0
-        self.attack_delay = 1000 
-        self.facing_right = True 
-        self.knockback = 0 
-        self.knockback_resistance = 0.8  
+        self.attack_delay = 1000
+        self.facing_right = True
+        self.knockback = 0
+        self.knockback_resistance = 0.8
         self.knockback_direction = 1
         self.on_ground = False
         self.can_jump = False
-        self.explosion_radius = 200  
+        self.explosion_radius = 200
         self.explosion_damage = 0.5
         self.is_exploding = False
         self.explosion_timer = 0
-        self.max_explosion_timer = 60 
-        
-    def load_img(self):        
+        self.max_explosion_timer = 60
+
+    def load_img(self):
         try:
             creeper_img = pygame.image.load("textures/creeper.png").convert_alpha()
             return pygame.transform.scale(creeper_img, ((59.375 * 1.2) * 1.5, ((50 * 0.9) * 2) * 1.5))
         except pygame.error as er:
             print(f"Error loading image: {er}")
             placeholder = pygame.Surface(((59.375 * 1.2) * 1.5, ((50 * 0.9) * 2) * 1.5))
-            placeholder.fill((0, 200, 0))  
+            placeholder.fill((0, 200, 0))
             return placeholder
-            
+
     def explode(self, player, world) -> bool:
         if self.health <= 0 or self.is_exploding:
             for _ in range(30):
@@ -1019,7 +1076,7 @@ class Creeper:
                     self.rect.centery + random.randint(-20, 20),
                     (0, 255, 0))
                 ])
-            
+
             distance = pygame.math.Vector2(player.rect.center).distance_to(
                 pygame.math.Vector2(self.rect.center))
             if distance < self.explosion_radius:
@@ -1037,16 +1094,16 @@ class Creeper:
                         chunk_y = block.rect.y // (16*50)
                         if (chunk_x, chunk_y) in world.chunks:
                             world.chunks[(chunk_x, chunk_y)].remove(block)
-            
+
             return True
         return False
-        
+
     def take_damage(self, amount: float, direction: int) -> bool:
         self.health -= amount
         self.knockback = 15
         self.knockback_direction = direction
         return self.health <= 0
-        
+
     def update(self, ground_blocks, player, world):
         if self.rect.colliderect(player.rect) and not self.is_exploding:
             self.is_exploding = True
@@ -1056,36 +1113,36 @@ class Creeper:
             if self.explosion_timer > self.max_explosion_timer - 20:
                 if self.explosion_timer % 5 == 0:
                     self.image.fill((255, 255, 255), special_flags=pygame.BLEND_ADD)
-            
+
             if self.explosion_timer >= self.max_explosion_timer:
                 self.explode(player, world)
-                return False  
+                return False
 
         if not self.is_exploding:
             self.world_pos[1] += self.gravity
             self.gravity += 0.8
             self.on_ground = False
-            
+
         self.rect.x = self.world_pos[0]
         self.rect.y = self.world_pos[1]
 
         if self.knockback > 0:
             self.world_pos[0] += self.knockback_direction * self.knockback
-            self.knockback *= self.knockback_resistance  
-            if self.knockback < 0.5:  
+            self.knockback *= self.knockback_resistance
+            if self.knockback < 0.5:
                 self.knockback = 0
 
         if self.knockback <= 0 and not self.is_exploding:
             player_pos = player.world_pos
-            if self.world_pos[0] < player_pos[0]:  
+            if self.world_pos[0] < player_pos[0]:
                 if not self.facing_right:
                     self.facing_right = True
-                    self.image = self.original_img  
+                    self.image = self.original_img
                 self.world_pos[0] += self.speed
-            else:  
+            else:
                 if self.facing_right:
                     self.facing_right = False
-                    self.image = pygame.transform.flip(self.original_img, True, False)        
+                    self.image = pygame.transform.flip(self.original_img, True, False)
                 self.world_pos[0] -= self.speed
 
             if self.attack_cooldown > 0:
@@ -1096,26 +1153,27 @@ class Creeper:
                 if self.gravity >= 0 and self.rect.bottom > block.rect.top:
                     if self.gravity > self.max_safe_fall:
                         self.take_damage((self.gravity - self.max_safe_fall) * 0.2, 0)
-                    
+
                     self.on_ground = True
-                    self.can_jump = True  
+                    self.can_jump = True
                     self.gravity = 0
                     self.rect.bottom = block.rect.top
-                    self.world_pos[1] = self.rect.y  
+                    self.world_pos[1] = self.rect.y
                     break
                 elif self.gravity < 0 and self.rect.top < block.rect.bottom:
                     self.gravity = 0
                     self.rect.top = block.rect.bottom
-                    self.world_pos[1] = self.rect.y  
+                    self.world_pos[1] = self.rect.y
                     break
-        
-        return True
-        
-def draw_hotbar(screen, player):
-    hotbar_x = (WIDTH - HOTBAR_WIDTH) // 2
-    hotbar_y = HEIGHT - HOTBAR_HEIGHT - HOTBAR_MARGIN
 
-    # Background
+        return True
+
+def draw_hotbar(screen, player):
+    sw, sh = screen.get_size()
+    hotbar_x = (sw - HOTBAR_WIDTH) // 2
+    hotbar_y = sh - HOTBAR_HEIGHT - HOTBAR_MARGIN
+
+
     pygame.draw.rect(
         screen, (40, 40, 40),
         (hotbar_x - 4, hotbar_y - 4, HOTBAR_WIDTH + 8, HOTBAR_HEIGHT + 8),
@@ -1134,7 +1192,7 @@ def draw_hotbar(screen, player):
         slot_x = hotbar_x + slot * SLOT_SIZE
         slot_rect = pygame.Rect(slot_x, hotbar_y, SLOT_SIZE, SLOT_SIZE)
 
-        # Slot border
+
         pygame.draw.rect(screen, (90, 90, 90), slot_rect, 2)
 
         item = player.inventory[slot]
@@ -1149,7 +1207,7 @@ def draw_hotbar(screen, player):
                 )
                 screen.blit(icon_img, (slot_x + 5, hotbar_y + 5))
 
-            # Stack count (do not show for tools = count 1)
+
             if item["count"] > 1:
                 count_text = font.render(str(item["count"]), True, (255, 255, 255))
                 screen.blit(
@@ -1157,7 +1215,7 @@ def draw_hotbar(screen, player):
                     (slot_x + SLOT_SIZE - 16, hotbar_y + SLOT_SIZE - 18)
                 )
 
-    # Selected slot highlight
+
     selection_x = hotbar_x + player.selected_slot * SLOT_SIZE
     pygame.draw.rect(
         screen,
@@ -1173,42 +1231,43 @@ def draw_health_bar(screen, player):
     padding = 0.2
     total_width = (player.max_health / 2) * (heart_size + padding)
 
-    start_x = 320
-    start_y = 725
+    sw, sh = screen.get_size()
+    start_x = sw // 2 - 180
+    start_y = sh - 75
 
     full_hearts = int(player.health // 2)
     half_hearts = player.health % 2 >= 1
     empty_hearts = int((player.max_health - player.health) // 2)
-    
+
     x_offset = 0
     for _ in range(full_hearts):
         screen.blit(player.heart_images["full"], (start_x + x_offset, start_y))
         x_offset += heart_size + padding
-    
+
     if half_hearts:
         screen.blit(player.heart_images["half"], (start_x + x_offset, start_y))
         x_offset += heart_size + padding
-        empty_hearts -= 1  
-    
+        empty_hearts -= 1
+
     for _ in range(empty_hearts):
         screen.blit(player.heart_images["empty"], (start_x + x_offset, start_y))
         x_offset += heart_size + padding
 
 
-zombies = []  
+zombies = []
 spiders = []
-creepers = []  
+creepers = []
 pigs = []
 sheeps = []
 last_spawn_time = 0
-spawn_interval = 300  
+spawn_interval = 300
 max_spiders = random.randint(1, 4)
 max_zombies = random.randint(1, 4)
 max_pigs = random.randint(1, 4)
 max_sheeps = random.randint(1, 4)
 max_creepers = random.randint(1, 4)
 world = World()
-world.load()  
+world.load()
 camera = Camera(WIDTH, HEIGHT)
 try:
     hurt_sound = mixer.Sound("sounds/hurt.mp3")
@@ -1218,8 +1277,9 @@ except:
     hurt_sound = mixer.Sound(buffer=bytearray(100))
 
 running = True
-game_state = "playing"  # playing | dead
+game_state = "playing"
 show_debug = False
+nearby_blocks = []
 
 clock = pygame.time.Clock()
 death_font = pygame.font.SysFont(None, 72)
@@ -1246,43 +1306,55 @@ while running:
     mouse_wheel_up = False
     mouse_wheel_down = False
     events = pygame.event.get()
-    
+
     for event in events:
         if event.type == pygame.QUIT:
             world.save()
             running = False
-        
+        if event.type == pygame.VIDEORESIZE:
+            width, height = event.w, event.h
+            camera.width = width
+            camera.height = height
+            respawn_button.rect = pygame.Rect(width // 2 - 120, height // 2 + 40, 240, 50)
+            exit_button.rect = pygame.Rect(width // 2 - 120, height // 2 + 110, 240, 50)
+
         if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_SPACE, pygame.K_UP, pygame.K_w) and player.on_ground:
-                player.gravity = player.jump_power
-                player.on_ground = False
-                player.can_jump = False
-            if event.key == pygame.K_e:   # Toggle crafting table
+            if event.key == pygame.K_F11:
+                is_fullscreen = not is_fullscreen
+                if is_fullscreen:
+                    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                else:
+                    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+                sw, sh = screen.get_size()
+                camera.width = sw
+                camera.height = sh
+                respawn_button.rect = pygame.Rect(sw // 2 - 120, sh // 2 + 40, 240, 50)
+                exit_button.rect = pygame.Rect(sw // 2 - 120, sh // 2 + 110, 240, 50)
+
+            if event.key == pygame.K_e:
                 show_crafting = not show_crafting
-            
+
             if pygame.K_1 <= event.key <= pygame.K_9:
                 player.selected_slot = event.key - pygame.K_1
-            elif event.key == pygame.K_LEFTBRACKET:  
+            elif event.key == pygame.K_LEFTBRACKET:
                 player.selected_slot = (player.selected_slot - 1) % HOTBAR_SLOTS
-            elif event.key == pygame.K_RIGHTBRACKET:  
+            elif event.key == pygame.K_RIGHTBRACKET:
                 player.selected_slot = (player.selected_slot + 1) % HOTBAR_SLOTS
-            
 
-            
+
             if event.key == pygame.K_ESCAPE:
                 world.save()
                 running = False
-            
 
-        
+
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pygame.mouse.get_pos()
             world_mouse_pos = (mouse_pos[0] + camera.camera.x,
                             mouse_pos[1] + camera.camera.y)
-            
+
             for zombie in zombies[:]:
                 if zombie.rect.collidepoint(world_mouse_pos):
-                    if zombie.take_damage(player.attack): 
+                    if zombie.take_damage(player.attack):
                         zombies.remove(zombie)
                     break
             for pig in pigs[:]:
@@ -1303,14 +1375,15 @@ while running:
 
 
     keys = pygame.key.get_pressed()
-    #print("DEBUG INVENTORY:", player.inventory)
+
     if game_state == "dead":
         screen.fill((10, 10, 10))
 
         title = death_font.render("GET WRECKED LOL", True, (200, 0, 0))
+        dw, dh = screen.get_size()
         screen.blit(
             title,
-            (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 120)
+            (dw // 2 - title.get_width() // 2, dh // 2 - 120)
         )
 
         respawn_button.draw(screen)
@@ -1336,31 +1409,27 @@ while running:
         continue
     show_debug = keys[pygame.K_F3]
 
+
+    if (keys[pygame.K_SPACE] or keys[pygame.K_UP] or keys[pygame.K_w]) and player.on_ground:
+        player.gravity = player.jump_power
+        player.on_ground = False
+        player.can_jump = False
+
+    dx = 0
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        player.world_pos[0] -= player.speed
+        player.sprinting = keys[pygame.K_LSHIFT]
+        player.speed = 6.612 if player.sprinting else 3.317
+        dx -= player.speed
         player.image = pygame.transform.flip(player.original_image, True, False)
         player.facing_right = False
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        player.world_pos[0] += player.speed
+        player.sprinting = keys[pygame.K_LSHIFT]
+        player.speed = 6.612 if player.sprinting else 3.317
+        dx += player.speed
         player.image = player.original_image
         player.facing_right = True
-    if (keys[pygame.K_LEFT] or keys[pygame.K_a]):
-        player.sprinting = keys[pygame.K_LSHIFT]  
-        player.speed = 6.612 if player.sprinting else 3.317
-        player.world_pos[0] -= player.speed
-        player.image = pygame.transform.flip(player.original_image, True, False)
-        player.facing_right = False
-        
-    if (keys[pygame.K_RIGHT] or keys[pygame.K_d]):
-        player.sprinting = keys[pygame.K_LSHIFT] 
-        player.speed = 6.612 if player.sprinting else 3.317
-        player.world_pos[0] += player.speed
-        player.image = player.original_image
-        player.facing_right = True
-    
 
 
-    # void damage
     if player.world_pos[1] > HEIGHT * 4:
         player.damage_frames += 1
         if player.damage_frames >= player.damage_delay:
@@ -1368,12 +1437,12 @@ while running:
             player.damage_frames = 0
             hurt_sound.play()
     else:
-        player.damage_frames = 0 
-    
+        player.damage_frames = 0
+
     if player.health <= 0:
         game_state = "dead"
 
-    if pygame.time.get_ticks() % 120000 < 60000: 
+    if pygame.time.get_ticks() % 120000 < 60000:
         is_day = True
     else:
         is_day = False
@@ -1404,18 +1473,18 @@ while running:
     if is_day and current_time - last_spawn_time > spawn_interval and len(pigs) < max_pigs:
         pigs.append(Pig())
         last_spawn_time = current_time
-    
+
     if not is_day and pigs:
         pigs.clear()
-    
+
     if is_day and current_time - last_spawn_time > spawn_interval and len(sheeps) < max_sheeps:
         sheeps.append(Sheep())
         last_spawn_time = current_time
-    
+
     if not is_day and sheeps:
         sheeps.clear()
-    
-    # mining/placing blocks
+
+
     mouse_buttons = pygame.mouse.get_pressed()
     mouse_pos = pygame.mouse.get_pos()
     world_x = mouse_pos[0] + camera.camera.x
@@ -1423,19 +1492,18 @@ while running:
     player.update_held_item_stats()
 
 
-            
-    if mouse_buttons[0]:  
+    if mouse_buttons[0]:
         for block in nearby_blocks[:]:
-            block_rect = pygame.Rect(block.rect.x - camera.camera.x, 
+            block_rect = pygame.Rect(block.rect.x - camera.camera.x,
                                     block.rect.y - camera.camera.y,
                                     block.rect.width, block.rect.height)
-            
+
             if block_rect.collidepoint(mouse_pos) and \
             pygame.math.Vector2(block.rect.center).distance_to(pygame.math.Vector2(player.rect.center)) <= player.max_mine_distance:
 
                 if isinstance(block, Bedrock):
-                    pygame.draw.rect(screen, (255, 0, 0), 
-                                    (block_rect.x, block_rect.y - 10, 
+                    pygame.draw.rect(screen, (255, 0, 0),
+                                    (block_rect.x, block_rect.y - 10,
                                     block_rect.width, 5))
                     break
 
@@ -1446,10 +1514,10 @@ while running:
 
                 player.mining_progress += player.mining_speed
                 progress_pct = min(player.mining_progress / block_max_health, 1.0)
-                
 
-                pygame.draw.rect(screen, (255, 255, 255), 
-                                (block_rect.x, block_rect.y - 10, 
+
+                pygame.draw.rect(screen, (255, 255, 255),
+                                (block_rect.x, block_rect.y - 10,
                                 block_rect.width * progress_pct, 5))
 
                 if player.mining_progress >= block_max_health:
@@ -1485,14 +1553,14 @@ while running:
                         color
                     ) for _ in range(15)]
                     world.add_particles(particles)
-                    
+
                     added = False
                     for slot in range(HOTBAR_SLOTS):
                         if player.inventory[slot]["type"] == item_type:
                             player.inventory[slot]["count"] += 1
                             added = True
                             break
-                    
+
                     if not added:
                         for slot in range(HOTBAR_SLOTS):
                             if player.inventory[slot]["type"] is None:
@@ -1500,15 +1568,15 @@ while running:
                                 player.inventory[slot]["count"] = 1
                                 added = True
                                 break
-                    
+
 
                     world.blocks.remove(block)
                     chunk_x = block.rect.x // (16*50)
                     chunk_y = block.rect.y // (16*50)
                     if (chunk_x, chunk_y) in world.chunks:
                         world.chunks[(chunk_x, chunk_y)].remove(block)
-                    
-                    
+
+
                     player.mining_block = None
                     player.mining_progress = 0
                 break
@@ -1538,7 +1606,7 @@ while running:
                 if has_support:
                     break
 
-            if (not player.rect.colliderect(temp_rect) and not occupied and 
+            if (not player.rect.colliderect(temp_rect) and not occupied and
                 (has_support or grid_y >= HEIGHT - 50)):
                 if selected_item["type"] == "dirt":
                     world.add_block(Dirtblock(grid_x, grid_y))
@@ -1547,30 +1615,34 @@ while running:
                 elif selected_item["type"] == "grass":
                     world.add_block(Grassblock(grid_x, grid_y))
                 elif selected_item["type"] == "wood":
-                    world.add_block(Wood(grid_x, grid_y))   
+                    world.add_block(Wood(grid_x, grid_y))
                 elif selected_item["type"] == "leaves":
-                    world.add_block(Leaves(grid_x, grid_y))   
+                    world.add_block(Leaves(grid_x, grid_y))
                 elif selected_item["type"] == "ironore":
-                    world.add_block(IronOre(grid_x, grid_y))                 
+                    world.add_block(IronOre(grid_x, grid_y))
                 elif selected_item["type"] == "coal":
-                    world.add_block(Coal(grid_x, grid_y)) 
+                    world.add_block(Coal(grid_x, grid_y))
                 elif selected_item["type"] == "diamond":
-                    world.add_block(Diamond(grid_x, grid_y)) 
+                    world.add_block(Diamond(grid_x, grid_y))
 
                 selected_item["count"] -= 1
                 if selected_item["count"] <= 0:
                     selected_item["type"] = None
-                
-                
+
+
+    player_chunk_col = int(player.world_pos[0] // (16 * 50))
+    for col_offset in range(-4, 5):
+        world.ensure_chunk_col(player_chunk_col + col_offset)
+
     nearby_blocks = world.get_nearby_blocks((player.rect.x, player.rect.y), 1000)
-    player.update(nearby_blocks)
+    player.update(nearby_blocks, dx)
     camera.update(player)
     world.update_particles()
 
     screen.fill(DAY_COLOR if is_day else NIGHT_COLOR)
 
     for block in nearby_blocks:
-        if (block.rect.right > camera.camera.left and 
+        if (block.rect.right > camera.camera.left and
             block.rect.left < camera.camera.right and
             block.rect.bottom > camera.camera.top and
             block.rect.top < camera.camera.bottom):
@@ -1590,7 +1662,7 @@ while running:
         spider.update(nearby_blocks)
         screen.blit(spider.image, (spider.rect.x - camera.camera.x, spider.rect.y - camera.camera.y))
 
-    for creeper in creepers[:]:    
+    for creeper in creepers[:]:
         if not creeper.update(nearby_blocks, player, world):
             creepers.remove(creeper)
         else:
@@ -1603,7 +1675,7 @@ while running:
     for sheep in sheeps:
         sheep.update(nearby_blocks)
         screen.blit(sheep.image, (sheep.rect.x - camera.camera.x, sheep.rect.y - camera.camera.y))
-        
+
     draw_hotbar(screen, player)
     draw_health_bar(screen, player)
 
@@ -1618,7 +1690,7 @@ while running:
         debug = [
             f"Player Coords: {camera.camera.x}, {camera.camera.y}",
             f"Held Item Slot: {player.selected_slot}",
-            f"Direction: {a}", 
+            f"Direction: {a}",
             f"OS Type: {OS_NAME} {OS_RELEASE}",
             f"Arch: {ARCH}"
 
@@ -1627,7 +1699,7 @@ while running:
         for i, line in enumerate(debug):
             screen.blit(font.render(line, True, WHITE), (10, 60 + i * 20))
 
-    
+
     if player.mining_block:
         block_rect = pygame.Rect(
             player.mining_block.rect.x - camera.camera.x,
@@ -1636,23 +1708,23 @@ while running:
             player.mining_block.rect.height
         )
         progress_pct = min(player.mining_progress / BLOCK_HEALTH, 1.0)
-        pygame.draw.rect(screen, (255, 255, 255), 
-                        (block_rect.x, block_rect.y - 10, 
+        pygame.draw.rect(screen, (255, 255, 255),
+                        (block_rect.x, block_rect.y - 10,
                          block_rect.width * progress_pct, 5))
-    
+
     if show_crafting:
         mouse_pos = pygame.mouse.get_pos()
         mouse_buttons = pygame.mouse.get_pressed()
 
         selected_item = player.inventory[player.selected_slot]["type"]
 
-        # handle crafting actions
+
         crafting.handle_click(mouse_pos, mouse_buttons, selected_item)
 
-        # draw crafting UI
+
         crafting.draw(screen)
-    
+
     pygame.display.flip()
-    clock.tick(60) 
+    clock.tick(60)
 
 sys.exit(1)
