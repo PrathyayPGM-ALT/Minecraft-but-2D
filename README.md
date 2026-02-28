@@ -216,6 +216,18 @@ Thanks to the Discord crew who kept this project alive:
 - **Craxzy** — trying to flex Nitro
 - **Red code** — for the challenge and trashing Python
 
+<p align="center">
+  <a href="https://github.com/h0hx">
+    <img src="https://github.com/h0hx.png" width="80" alt="user1"/>
+  </a>
+  <a href="https://github.com/user2">
+    <img src="https://github.com/user2.png" width="80" alt="user2"/>
+  </a>
+  <a href="https://github.com/user3">
+    <img src="https://github.com/user3.png" width="80" alt="user3"/>
+  </a>
+</p>
+
 ---
 
 <div align="center">
