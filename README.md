@@ -219,7 +219,7 @@ Thanks to the Discord crew who kept this project alive:
 <p align="center">
   <a href="https://github.com/h0hx">
     <img src="https://github.com/h0hx.png" width="80" alt="user1"/>
-  </a> &nsbp;&nsbp;
+  </a> &nbsp;&nbsp;
   <a href="https://github.com/crude-ssg">
     <img src="https://github.com/crude-ssg.png" width="80" alt="user2"/>
   </a>
