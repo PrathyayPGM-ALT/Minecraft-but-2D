@@ -4,12 +4,14 @@
 
 **A 2D Minecraft-inspired sandbox built from scratch with Pygame**
 
-<img src="https://go-skill-icons.vercel.app/api/icons?i=pygame" width="50" />&nbsp;&nbsp;<img src="https://skillicons.dev/icons?i=python" width="50" />
+<img src="https://skillicons.dev/icons?i=python" width="64" />&nbsp;&nbsp;<img src="https://go-skill-icons.vercel.app/api/icons?i=pygame" width="64" />
 
-![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)
-![Language](https://img.shields.io/badge/language-Python-3776AB?style=flat-square&logo=python&logoColor=white)
-![Library](https://img.shields.io/badge/library-Pygame-00B140?style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+<br/>
+
+![Status](https://img.shields.io/badge/STATUS-ACTIVE-4CAF50?style=for-the-badge&logoColor=white)
+![Language](https://img.shields.io/badge/PYTHON-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Library](https://img.shields.io/badge/PYGAME-00B140?style=for-the-badge&logo=python&logoColor=white)
+![License](https://img.shields.io/badge/LICENSE-MIT-0078D4?style=for-the-badge&logoColor=white)
 
 *Mining. Crafting. Mobs. Explosions. Full day/night cycle. All in 2D.*
 
